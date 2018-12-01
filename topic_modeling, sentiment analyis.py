@@ -1,504 +1,392 @@
-
-# coding: utf-8
-
-# In[1]:
-
-
 from collections import defaultdict 
 import pysrt 
 import os
 from tqdm import tqdm
-
 import spacy
-
-
-# In[4]:
-
-
-#load database files from computer
-
-path='/Users/theodoraboulouta/Desktop/CS206/subs'
-all_subtitles = os.listdir(path)
-all_subtitles
-
-
-# In[5]:
-
-
-#show first file loaded
-
-file = all_subtitles[0]
-file
-
-
-# In[6]:
-
-
-#show starting text of first file
-
-print(open(path + '/' + file).read())
-
-
-# In[7]:
-
-
-#make every file flat and add to the list
-
-full_flat_transcript = [] #contains a list with a flat transcript of each document
-
-
-for a_file in tqdm(all_subtitles):
-    #pick next file in the folder
-    srt_file = pysrt.open(path + '/' + a_file)
-    flat_transcript = ''
-    
-    #make flat
-    for item in srt_file:
-        flat_transcript += item.text + ' '
-    full_flat_transcript.append(flat_transcript)
-
-
-# In[7]:
-
-
-#show flattened version of first file 
-
-print('total number of files: ', len(full_flat_transcript))
-
-index = 0;
-print ('flattened file #', index + 1, ': \n')
-print(full_flat_transcript[index])
-
-
-# In[14]:
-
-
-
-# create a lemmatized version of each individual file and store this back in the original full_flat_transcript position  
-
-nlp = spacy.load('en_core_web_sm', disable=['parser','ner'])
-
-i = 0
-
-max_index = len(full_flat_transcript) - 1 
-print(max_index)
-
-#demo of first file lemmatized
-for t_file in nlp.pipe(tqdm(full_flat_transcript), n_threads = 4, batch_size = 100): #reduce batch size if load is too much
-    lem_flat_transcript = ''
-    
-    for token in t_file: #iterate through and lemmatize each word in the file
-        lem_flat_transcript += token.lemma_ + ' '
- 
-    #replace old flat transcript with new, lemmatized flat transcript
-    full_flat_transcript[i] = lem_flat_transcript
-    i += 1   #move to the next transcript file in the list
-    
-#remove punctuation
-#lem_flat_transcript = lem_flat_transcript.translate(None, string.punctuation)
-    
-#maybe store something here about start index of certain channels, then start character ranges, for later transcript parsing
-
-
-# In[15]:
-
-
-#show new, lemmatized flat transcript, stored in original list
-
-print(full_flat_transcript[0])
-
-
-# In[16]:
-
-
-#combine flat transcripts across lemmatized files
-combined_flat_lem_transcript = ''
-
-
-for word in full_flat_transcript:
-    combined_flat_lem_transcript += word + ' '  
-
-
-# In[17]:
-
-
-#combined transcript now contains words from the first 100 files
-
-print(combined_flat_lem_transcript[:1000])
-
-
-# In[18]:
-
-
-#make a list of all the words (these will all be already lemmatized at this point)
-
-words = combined_flat_lem_transcript.split(' ')
-#double_words = [] # code for n-grams
-
-print(words[:100])
-
-
-# In[2]:
-
-
-#count the number of occurences of each word
-
-absolute_occurrences = defaultdict(int)
-
-for word in tqdm(words):
-    absolute_occurrences[word] += 1
-
-
-# In[3]:
-
-
-#show number of occurences of each word
-
 from operator import itemgetter
-pairs = [(k, v) for k, v in absolute_occurrences.items()]
-sorted_pairs = sorted(pairs, key=itemgetter(1), reverse=True)
-sorted_pairs
-
-
-# In[1]:
-
-
-#pick a target word and count the number of times each word appears "close to" the target word
-
-target = "crime"
-
-co_occurrences = defaultdict(int)
-window = 10
-
-for i in tqdm(list(range(window, len(words) - window))):
-    if words[i] == target:
-        for j in range(i - window, i + window):
-            co_occurrences[words[j]] += 1
-            
-
-
-# In[20]:
-
-
-#show co-occurence counts
-
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import re
+from collections import namedtuple
+from collections import defaultdict 
+import pysrt 
+import os
+from tqdm import tqdm
+import spacy
+import re
+from collections import namedtuple
+from matplotlib import pyplot as plt
 from operator import itemgetter
-pairs = [(k, v) for k, v in co_occurrences.items()]
-sorted(pairs, key=itemgetter(1), reverse=True)
+import pickle
+
+def non_zero_index(ar):
+    i = 0
+    while ( i < len(ar) and ar[i] == 0 ):
+        i+=1
+    return i
+
+def get_Date(segment):
+    
+    string = segment.file
+    ar = ''
+    ar = string.split('_')
+    s = ar[1]
+    #k = ar[2]
+    date = s[0:4] + '_' + s[4:6] + '_' + s[6:8] #+ '_' + k
+    return date
+
+def parse_file(filename, path):
+    file = open(path + '/' + filename, "r")
+    words = []
+    stamps = []
+    timestamp = 0
+    i = 0   
+    for line in file:
+        line = line.strip()       
+        #beginning of every file is a 1
+        if i == 1:
+            stamps.append(line)
+            words.append(1)           
+        if '-->' in line:
+            timestamp = line
+        if re.search('[a-zA-Z]', line):
+            for word in line.split(' '):
+                words.append(word)
+                if '.' in word:
+                    stamps.append(timestamp)
+                else: 
+                    stamps.append(0)
+        i += 1    
+    return (words,stamps)
+
+#TODO: returns a file with a flattened lemmatized transcript
+def lemmetize_files(file_array):
+    return 0
+
+def lemmetize_transcript(str):
+    return 0
+
+def remove_time_stamps(str):
+    return 0
 
 
-# In[25]:
+# lemmatizes and removes time stamps 
 
+def generate_flattened_transcript(path):
+    
+    
+    return transcript_str
 
-def mutual_information(other):
+#HELPER
+def mutual_information(other, co_occurrences, absolute_occurrences, target):
     return co_occurrences[other] / (absolute_occurrences[target] * absolute_occurrences[other])
 
 
-# In[26]:
 
+#pick a target word and count the number of times each word appears "close to" the target word
+#minimum lexicon size is 30
+#generates a lexicon from a flattened, lemmatized file.
+#takes as input n_words, the desired number of words in the output lexicon
+def lexicon_from_flattened_files(filename, target, n_words):
+    window = 10  #number of words to be examined at any one time in a window
 
-mi_pairs = [(word, mutual_information(word)) for word in tqdm(set(words))]
-
-
-# In[30]:
-
-
-mi_pairs_filtered = [pair for pair in mi_pairs if absolute_occurrences[pair[0]] > 100]
-mi_pairs_sorted = sorted(mi_pairs_filtered, key=itemgetter(1), reverse=True)
-mi_pairs_sorted[0][0]
-mi_pairs_sorted
-
-
-# In[38]:
-
-
-#put lexicon into array in order of strongest to weakest match
-topic_words = [ mi_pairs_sorted[i][0] for i in range(0,200)]
-
-topic_words
-
-
-# In[149]:
-
-
-combined_flat_lem_transcript[:1000]
-
-
-# In[391]:
-
-
-#topic identification
-
-
-#create an array list of all the words in the files in order: to be used to score sections
-i = 1
-lemmas = [] #holds the words in the files in order
-
-file = open("test_fox", "r")
-
-for line in file:
-    for word in line.split(' '):
-        lemmas.append(word)
-        i+= 1
+    words = []
+    if(n_words < 30): n_words = 30
     
+    file = open(filename, "r")
+    for line in file:
+        for word in line.split(' '):
+            words.append(word)
+
+    absolute_occurrences = defaultdict(int)
+
+    for word in words:
+        absolute_occurrences[word] += 1
+      
+    pairs = [(k, v) for k, v in absolute_occurrences.items()]
+    sorted_pairs = sorted(pairs, key = itemgetter(1), reverse=True)
+    co_occurrences = defaultdict(int)
+
+    for i in list(range(window, len(words) - window)):
+        if words[i] == target:
+            for j in range(i - window, i + window):
+                co_occurrences[words[j]] += 1
+
+    pairs = [(k, v) for k, v in co_occurrences.items()]
+    sorted(pairs, key=itemgetter(1), reverse=True)
+
+    mi_pairs = [(word, mutual_information(word, co_occurrences, absolute_occurrences, target)) for word in set(words)]
+    mi_pairs_filtered = [pair for pair in mi_pairs if absolute_occurrences[pair[0]] > 100]
+    mi_pairs_sorted = sorted(mi_pairs_filtered, key=itemgetter(1), reverse=True)
+    
+    topic_words = [ mi_pairs_sorted[i][0] for i in range(0,n_words)]
+
+    return topic_words
 
 
-# In[392]:
+#takes a string in format (time1s --> time1e, time2s --> time2e) 
+#and returns either time1s(the overall start time) or time2e(the overall end time) based on passed in parameter
+def isolateTimeSegment(part, timeRange):
+    
+    start_time = ''
+    end_time =''
+    ignoreChar1 = '>'
+    ignoreChar2 = ' '
+    ignoreChar3 = '-'
+    end = 0
+    
+    if (part == 1):
+        tRange = timeRange[0]
+    else:
+        tRange = timeRange[1]
+        
+    for char in tRange:
+        #print(char)
+        if char == '-':
+            end = 1
+            #print('begin end')
+        if(char != ignoreChar1 and char != ignoreChar2 and  char != ignoreChar3):
+            if(end == 0):
+                start_time = start_time + char
+            else:
+                end_time = end_time + char
+            #print(start_time, end_time)
+                
+    if part == 1:
+        return start_time
+    else:
+        return end_time
+
+# returns an array that holds the segments about the topic. In  entry i in th array
+# arr[0] is the string ar[1] is the immigration score, ar[2] is the sentiment scores
+# arr[3] is the start and end of the window
 
 
-#score sections
-   
-window_size = 100 #2 minute chunks
-skip = 70 #analyze with an accuracy of 30 seconds, 30 seconds = 70 words
+# var suggestions
+# window_size = 100
+# skip = 70
+# score_threshold = 110
 
-scores = [] #holds scores
+def combine_overlapping_intervals(scores_filtered, times_raw):
+    topic_indexes_and_times = []
 
-#topic_words: an array of words from the lexicon, ordered by MI score
-#with index 0 being the topic word and lower indexes containing words with higher MI scores (generated and manual)
-#threshhold_score = 5
+    i = 1
+
+    while i < len(scores_filtered): 
+        current_score_intvl = scores_filtered[i]
+        previous_score_intvl = scores_filtered[i-1]
+        start = scores_filtered[i-1][0]
+
+        #determine if ranges of the two scores overlap
+        if current_score_intvl[0] <= previous_score_intvl[1]: #if the beginning of the current interval overlaps with the end of the interval before
+            expanded_end = scores_filtered[i][1]
+
+            scores_filtered.insert(i, ((start, expanded_end))) #
+            scores_filtered.remove(current_score_intvl)
+            scores_filtered.remove(previous_score_intvl)
+            #new_times.append((start_time, expanded_end_time))
+            
+        else: 
+            i = i + 1
+        #new_times.append((start_time, end_time))
+    #print(scores_filtered[i])
+    #print(times_raw[scores_filtered[i][0]])
+
+    #holds the start and beginning indexes of words in expanded topic segments, and their corresponding times
+    
+    for x in range(0, len(scores_filtered)):
+        elemIndexes = scores_filtered[x] #format: (strtInd, endInd)
+        startRange = times_raw[elemIndexes[0]]
+        endRange =  times_raw[elemIndexes[1]]
+        topic_indexes_and_times.append((elemIndexes, (startRange, endRange)))
+
+    return topic_indexes_and_times
+
+
+def print_topic_segments(string_score_sent):
+    for entry in string_score_sent:
+        print('hi')
+        print(entry[0])
+        print("topic score: ", entry[1])
+        print("sentiment score: ", entry[2])
+
+def write_topic_segments_in_file(string_score_sent, filename):
+    for entry in string_score_sent:
+        file = open(filename, "w")
+        file.write(entry[0])
+        file.write("topic score : ", entry[1])
+        file.write("sentiment score: ", entry[2])
+  
+#HELPER
+
+# scores_filtered = combine_overlapping_intervals(scores_filtered, segments, times)
+#assumes lexicon greater than 30
+#TODO: make score based upon size of lexicon window maybe... / edit
+def compute_topic_score(string, topic_words):
+    #nlp = spacy.load('en_core_web_sm', disable=['parser','ner'])
+    #print('len(topic_words)', len(topic_words))
+    score = 0
+    for word in string.split(' '):
+        #doc = nlp(word)
+        #for token in doc:
+            #word = token.lemma_
+
+        #print('word: ', word)
+        #if word == 'immigration': print('word: ', word)
+
+        ##work around... fix later....
+        #for lex_word in topic_words:
+            #if(lex_word in word):
+                #word = lex_word
+
+       # if (lex_word in word for lex_word in topic_words):
+        if word in topic_words:
+            #print('***word is in topic words:', word)
+            topic_rank = topic_words.index(word)
+            if (topic_rank ==0): score += 100 # main topic word always scored at index 0
+            if (topic_rank in range (1, 10)): score += 20
+            if (topic_rank in range (10, 20)): score += 15
+            if (topic_rank in range (20, 30)): score += 10
+            if (topic_rank in range (30, len(topic_words) - 1)): score += 7
+    #print('topic score: ', score)
+    return score
 
 #takes in an array of size window_size and computes a score
-topic_words = ['immigration','comprehensive','stance','reform','illegal','soften','lawful','postpone','cornerstone','flopping','phoenix','compliance','flop','custom','suspend','enforce','hawk','temporarily','softening','pillar','systematically','centerpiece','entitlement','fiery','skilled','restrict','outline','speech','statu','signature','liner','waiver','amnesty','policy','hardening','appealing','federation','harden','realistically','revise','proposal','denigrate','sensible','adequate','ambiguity','i.c.e','input','disproportionately','forefront','backtrack','univision','reversal','sovereignty','downward','tirade','nationalism','clarify','position','trade','curb','nuanc','influx','deportation','anticipate','flip','mixed','deter','migration','screening','citizenship','arizona','revert','border','detention','terminate','legislative','trafficking','wednesday','clarity','tweak','vetting','coulter','nonwhite','belgium','undocumented','visa','staunch','sanctuary','pertain','topic','professionally','unveil','meaningful','refugee','clarification','akron','vaughn','misrepresent','latinos','removal','evolve','shift','modeling','articulate','loudly','proponent','thereof','harsh','mantra','upward','coherent','deport','cliche','arpaio','tackle','germany','enrique','slick','jeb','renegotiate','monte','laughable','pathway','compassionate','cantor','humane','hatred','conservatism','heritage','remarkably','civilization','radically','prioritize','vet','polici','alien','landmark','merkel','modest','mechanism','major','crop','specificity','strict','wage','wrestle','mexico','confusing','bigotry','broken','await','enforcement','immigrant','deliver','documentation','volatile','signal','properly','principle','mobility','legal','cortez','establish','entry','feasible','hallmark','mercy','listener','accelerate','issue','anti','historical','consideration','blowback','overhaul','ethnic','rhetoric','mack','humanely','trumpism','reaffirm','aspirational','propose','waver','me','detailed','construction','ban','plan','compromise','clueless','hindsight','soft','reconcile','sharia','pace','seemingly','manpower','thursday','impulse']
-
-def compute_topic_score(window):
-   score = 0
-   for word in window:
-       if word in topic_words:
-           topic_rank = topic_words.index(word)
-           if (topic_rank ==0): score += 100 # main topic word always scored at index 0
-           if (topic_rank in range (1, 10)): score += 20
-           if (topic_rank in range (10, 20)): score += 15
-           if (topic_rank in range (20, 30)): score += 10
-           if (topic_rank in range (30, len(topic_words) - 1)): score += 7
-   return score
-
-
-# In[393]:
-
-
-#topic ID
-skip = 70
-#iterate through lemmas list for a single transcript, skipping from i =0 to i = 70, for example
-for i in range(0, len(lemmas), skip):
-    window = lemmas[i:i+window_size] #get an array of size 280
-    string =''
-    for word in window:
-        string += word + ' '
-    print(string)
-    
-    score = compute_topic_score(window)
-    print('score', score, '\n ------- \n')
-    scores.append(((i, i+window_size), score))
-
-
-# In[394]:
-
-
-scores[:100]
-
-
-# In[395]:
-
-
-from matplotlib import pyplot as plt
-
-
-# In[396]:
-
-
-#show graph of various intvl scores
-
-X = [intvl[0] for (intvl, score) in scores]
-Y = [score for (intvl, score) in scores]
-plt.plot(X, Y) 
-
-#plot of topic match by starting time interval
-
-
-# In[397]:
-
-
-score_threshold = 110 #can pick this based on a plot of the scores
-
-#make scores contain only a list of intervals with high enough topic-match scores
-
-scores_filtered = [interval for (interval, score) in scores if score > score_threshold]
-
-
-# In[398]:
-
-
-scores_filtered = list(scores_filtered)
-print(scores_filtered)
-
-
-# In[399]:
-
-
-#visualization: length of "topic" segments (pre-merge)
-
-X = [intvl[0] for intvl in scores_filtered]
-Y = [(intvl[1]-intvl[0]) for intvl in scores_filtered]
-plt.plot(X, Y) 
-
-
-#X = [intvl[0] for (intvl, score) in scores]
-#Y = [score for (intvl, score) in scores]
-#plt.plot(X, Y) 
-
-#plot of topic match by starting time interval
-
-
-# In[400]:
-
-
-#combine overlapping intervals: new interval stored in scores is expanded
-
-
-i = 1
-print(i)
-
-while (i < len(scores_filtered)): 
-    print('i = ', i)
-    print('len scores' , len(scores_filtered))
-    
-    current_score_intvl = scores_filtered[i]
-    previous_score_intvl = scores_filtered[i-1]
-    start = scores_filtered[i-1][0]
-    
-    print('previous intvl:', previous_score_intvl, 'index:' , i-1)
-    print('current intvl:', current_score_intvl, 'index:' , i)
-   
-    #determine if ranges of the two scores overlap
-    if (current_score_intvl[0] <= previous_score_intvl[1]): #if the beginning of the current interval overlaps with the end of the interval before
-        #print('merging. pre-merge:')
-        
-        #print( scores_filtered[i-2], scores_filtered[i-1], scores_filtered[i], '(I)', scores_filtered[i+ 1])
-        #combine scores
-        #previous_score_intvl[1] = current_score_intvl[1] #extend index of previous score to be the last index of the current score
- 
-        expanded_end = scores_filtered[i][1]
-
-        #print('intvl at index i-1 (= ', (i-1), '):  ', scores_filtered[i-1], ' (previous)' )
-        #print('intvl at index i (= ', i, '): ',  scores_filtered[i], ' (current)' , i)
-        
-        scores_filtered.insert(i, (start, expanded_end))
-            
-        #remove current score once joined
-        scores_filtered.remove(current_score_intvl)
-        scores_filtered.remove(previous_score_intvl)
-        
-       
-        #scores_filtered[i-1][1] = expanded_end
-        
-        #del scores_filtered[i]
-        #print('post-merge:')
-        #print(scores_filtered[i-2], scores_filtered[i-1], scores_filtered[i], '(I)', scores_filtered[i+ 1])
-               
-        #print('intvl at index i-1 (= ', i-1, '): ', scores_filtered[i-1], ' (previous)' )
-        #print('intvl at index i (= ', i, '): ', scores_filtered[i], ' (current)')
-        #print('i = ', i)
-
-    else: 
-        #print(' not merging' )
-        #move to next index if no joining occured
-        i += 1
-
-scores_filtered
-print(len(scores_filtered))
-
-#for i in range(1, len(scores):
-
-
-# In[401]:
-
-
-#visualization: length of "topic" segments (post-merge)
-
-X = [intvl[0] for intvl in scores_filtered]
-Y = [(intvl[1]-intvl[0]) for intvl in scores_filtered]
-plt.plot(X, Y) 
-
-
-# In[402]:
-
-
-#sentiment analysis of a string 
-
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-analyzer = SentimentIntensityAnalyzer()
-
-
 #takes in an array of size window_size and computes a score
 def compute_sent_score(string):
+    analyzer = SentimentIntensityAnalyzer()
     sentiment_score = 0
-    
-   
-    #strings
-    sentiment_array = [string, ]
-    #sentiment_array[0] = string
-    
-    for word in sentiment_array:
+    for word in string.split(' '):
         sentiment_score += analyzer.polarity_scores(word)['compound']
-        
     return sentiment_score
 
 
-# In[403]:
+#returns an array of segments and the times and indexes in the word array 
+# they correspond to.
 
-
-#score = compute_sent_score('hey how are you doing babe i hate you and love you at the same time')
-#print(score)
-print(len(scores_filtered))
-
-
-# In[404]:
-
-
-#print out identified topic sections
-    #iterate through scores
-    #print from lemma from interval[0] to interval[1]
-
-string_score_sent = []
-
-#iterate through lemmas list for a single transcript, skipping from i =0 to i = 70, for example
-print(len(scores_filtered))
-for i in range(0, len(scores_filtered)):
-    window_start = scores_filtered[i][0]
-    window_end = scores_filtered[i][1]
-    window = lemmas[window_start:window_end] #get an array of size 280
-    string =''
-    for word in window:
-        string += word + ' '
-    print(string)
+#if you comment out lines that have # next to 
+#it you will get non overlapping segements
+#
+def create_segments(filename, path, overlap, segment_length, skip):
+    ar = parse_file(filename, path)
+    words = ar[0]
+    stamps = ar[1]
+    segments = []
+    times = []
+    indexes = []
     
-    score = compute_topic_score(window)
-    print('Section score:', score)
+    #****** lemmatized_segments = []
     
-    sentiment_score = compute_sent_score(string)
-    print('Sentiment score:', sentiment_score, '\n ------- \n')
+    #beginning_index=0
+    last_index = 0 #the last index of the last segment that has been apended. 
+    end = len(words)
+
+    while(last_index + segment_length < end):
+        #print('looping again', last_index, segment_length, len(words))
+        beginning_index = last_index
+        last_index += segment_length
+        dot_index = non_zero_index(stamps[last_index:])
+        last_index += dot_index
+        
+        #if (last_index + dot_index > end):
+            #words = words[:last_index + dot_index]
+            #ar2 = [segments, times, indexes, words, stamps]
+            #return ar2
+        #if(last_index == end) last_index = last_index - 1 #take out
+        
+        #print('beginning_index:', beginning_index, 'last_index: ', last_index, len(stamps) )
+        
+        if (last_index >= end): #account for case in which file doesn't end with a period
+            last_index = end - 1
+            #print('ignoring last segment', last_index) #fix: actually ignore last segment
+            break
+
+        new_segment = ' '.join(words[beginning_index + 1 :last_index + 1])
+        segments.append(new_segment)
+
+        #***** lemmatized_segments_text.append(lemmatize_segment(new_segment))
+            #GEN: text then compute the topic score on lemmatized segment and store
+
+        times.append((stamps[beginning_index], stamps[last_index]))
+        indexes.append((beginning_index,last_index))
+        if (overlap == 'overlap'):
+            dot_skip = non_zero_index(stamps[beginning_index + skip:])##
+            last_index = beginning_index + skip + dot_skip ###
+
+    ar2 = [segments, times, indexes, words, stamps]
+
+    return ar2
+
+#returns an array of words with high enough scores. Also returns the start and end indexes of the words
+#format: ((strtInd, endInd), segmentScore)
+def get_filtered_scores(segments, lexicon, indexes, score_threshold):
+    i = 0
+    scores = [] #holds scores
+
+    for segment in segments:
+
+        #score section
+        score = compute_topic_score(segment, lexicon) 
+
+        #add the score 
+        scores.append(((indexes[i]), score))
+
+        i = i + 1
+
+    #store indexes of the intervals of words with high enough scores: i: ((strtInd, endInd), segScore)
+    scores_filtered = [interval for (interval, score) in scores if score > score_threshold] #took out times_raw
+    print('len(scores_filtered): ', len(scores_filtered))
+    return scores_filtered
+
+def foobar():
+    pass
+
+#returns an array of transcript segments about a given topic and corresponding information:
+#array[i][0]: the transcript segment
+#array[i][1]: the segment's topic score
+#array[i][2]: the segment's sentiment score
+#array[i][3]: the segment's start time
+#array[i][3]: the segment's end time
+
+def identify_segments_about(file, path, overlap, segment_length, skip, lexicon, score_threshold):
     
-    string_score_sent.append((string, score, sentiment_score, (window_start, window_end)))
-   
-
-
-# In[405]:
-
-
-#sentiment analysis: how positive are these topic
+    ar = create_segments(file, path, overlap, segment_length, skip)
     
-string_score_sent[:3]
+    segments = ar[0]
+    times = ar[1]
+    indexes = ar[2] #stores word indexes of a segment i
+    words = ar[3]
+    times_raw = ar[4]
+    
+    scores_filtered = list(get_filtered_scores(segments, lexicon, indexes, score_threshold))
+    print('len(scores_filtered): ', len(scores_filtered))
+    topic_indexes_and_times = combine_overlapping_intervals(scores_filtered, times_raw)
+    #scores_times = lib.combine_overlapping_intervals(scores_filtered, times_raw)
+    
+    string_score_sent_timestamp = []
+    Record = namedtuple('Point', ['text', 'topic_score', 'sent_score', 'start_time', 'end_time', 'file'])
 
 
-# In[406]:
+    for i in range(0, len(topic_indexes_and_times)): #
+        new_segment = []
+        seg_start = topic_indexes_and_times[i][0][0] + 1
+        seg_end = topic_indexes_and_times[i][0][1] + 1
+        string = ' '.join(words[seg_start : seg_end])
+
+        #find topic and sentiment scores -- topic score is already stored somewhere... fix
+        topic_score = compute_topic_score(string, lexicon)
+        sentiment_score = compute_sent_score(string)
+
+        #find time ranges
+        timeRange = topic_indexes_and_times[i][1]
+        start_time = isolateTimeSegment(1, timeRange)
+        end_time = isolateTimeSegment(2, timeRange)
 
 
-#visualization: #visualization: sentiment scores for each segment(post-merge)
+        #new_entry = ((string, score, sentiment_score, start_time, end_time, file))
+        new_segment = Record(text=string, topic_score=topic_score, sent_score=sentiment_score, start_time=start_time,end_time=end_time,file=file)
 
 
-#string_score_sent.append((string, score, sentiment_score, (window_start, window_end)))
 
-X = [item[3][0] for item in string_score_sent]
-Y = [item[2] for item in string_score_sent]
-plt.plot(X, Y)
-
+        string_score_sent_timestamp.append(new_segment)
+        
+    return string_score_sent_timestamp
