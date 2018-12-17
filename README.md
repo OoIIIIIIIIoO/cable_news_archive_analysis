@@ -1,6 +1,6 @@
 # cable_news_archive_analysis
 
-This project was developed for a computational journalism class at Stanford (CS206) 
+This project was developed for a computational journalism class at Stanford (CS206). 
 This repository contains the code for our project and our project's results. 
 
 The goal was to analyze cable news transcripts by writing topic modelling, sentiment analysis and bias 
